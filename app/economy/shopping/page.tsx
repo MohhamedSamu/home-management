@@ -293,7 +293,7 @@ export default function ShoppingPage() {
         }
 
         // Add house expense
-        const uniqueSupermarkets = [...new Set(houseCartItems.map(item => item.supermarket))]
+        const uniqueSupermarkets = Array.from(new Set(houseCartItems.map(item => item.supermarket).filter((s): s is string => s !== null)))
         const expenseDescription = uniqueSupermarkets.length === 1 
           ? `Groceries - ${uniqueSupermarkets[0]}`
           : `Groceries - ${uniqueSupermarkets.join(', ')}`
@@ -311,7 +311,7 @@ export default function ShoppingPage() {
         const airbnbTotal = airbnbCartItems.reduce((sum, item) => sum + item.price, 0)
         const cartSupplier = currentSupplier || 
           (airbnbCartItems.length > 0 ? airbnbCartItems[0].supplier : 'Unknown')
-        const uniqueSuppliers = [...new Set(airbnbCartItems.map(item => item.supplier))]
+        const uniqueSuppliers = Array.from(new Set(airbnbCartItems.map(item => item.supplier).filter((s): s is string => s !== null)))
         const expenseDescription = uniqueSuppliers.length === 1 
           ? `Supplies - ${uniqueSuppliers[0]}`
           : `Supplies - ${uniqueSuppliers.join(', ')}`
@@ -660,14 +660,14 @@ export default function ShoppingPage() {
                               <p className="text-sm font-medium mt-1">
                                 ${item.price.toFixed(2)} at {item.supermarket}
                               </p>
-                              {priceComparison !== null && (
+                              {priceComparison !== null && product && product.last_price !== null && (
                                 <p
                                   className={`text-xs mt-1 ${
                                     priceComparison > 0 ? 'text-red-600' : 'text-green-600'
                                   }`}
                                 >
                                   {priceComparison > 0 ? '+' : ''}
-                                  {priceComparison.toFixed(2)} vs last price ({product.last_price?.toFixed(2)})
+                                  {priceComparison.toFixed(2)} vs last price ({product.last_price.toFixed(2)})
                                 </p>
                               )}
                             </div>
@@ -719,14 +719,14 @@ export default function ShoppingPage() {
                               <p className="text-sm font-medium mt-1">
                                 ${item.price.toFixed(2)} at {item.supplier}
                               </p>
-                              {priceComparison !== null && (
+                              {priceComparison !== null && product && product.last_price !== null && (
                                 <p
                                   className={`text-xs mt-1 ${
                                     priceComparison > 0 ? 'text-red-600' : 'text-green-600'
                                   }`}
                                 >
                                   {priceComparison > 0 ? '+' : ''}
-                                  {priceComparison.toFixed(2)} vs last price ({product.last_price?.toFixed(2)})
+                                  {priceComparison.toFixed(2)} vs last price ({product.last_price.toFixed(2)})
                                 </p>
                               )}
                             </div>

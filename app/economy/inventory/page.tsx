@@ -91,7 +91,7 @@ export default function InventoryPage() {
     return matchesSearch && matchesSupermarket && matchesInventoryLevel
   })
 
-  const uniqueSupermarkets = [...new Set(products.map(p => p.supermarket).filter(Boolean))]
+  const uniqueSupermarkets = Array.from(new Set(products.map(p => p.supermarket).filter((s): s is string => Boolean(s))))
 
   if (loading) {
     return (
@@ -138,7 +138,7 @@ export default function InventoryPage() {
           <div>
             <label className="block text-sm font-medium mb-1">Filter by Inventory Level</label>
             <select
-              value={filterInventoryLevel}
+              value={filterInventoryLevel ?? ''}
               onChange={(e) => setFilterInventoryLevel(e.target.value as InventoryLevel | '')}
               className="w-full px-3 py-2 border rounded-lg"
             >

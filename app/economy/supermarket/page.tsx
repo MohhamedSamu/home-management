@@ -500,14 +500,14 @@ export default function SupermarketPage() {
                             <p className="text-sm font-medium mt-1">
                               ${item.price.toFixed(2)} at {item.supermarket}
                             </p>
-                            {priceComparison !== null && (
+                            {priceComparison !== null && product && product.last_price !== null && (
                               <p
                                 className={`text-xs mt-1 ${
                                   priceComparison > 0 ? 'text-red-600' : 'text-green-600'
                                 }`}
                               >
                                 {priceComparison > 0 ? '+' : ''}
-                                {priceComparison.toFixed(2)} vs last price ({product.last_price?.toFixed(2)})
+                                {priceComparison.toFixed(2)} vs last price ({product.last_price.toFixed(2)})
                               </p>
                             )}
                           </div>

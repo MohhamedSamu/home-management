@@ -165,7 +165,7 @@ export default function AirbnbProductsPage() {
       (cartItems.length > 0 ? cartItems[0].supplier : 'Unknown')
     
     // For expense description, use cartSupplier or list unique suppliers
-    const uniqueSuppliers = [...new Set(cartItems.map(item => item.supplier))]
+    const uniqueSuppliers = Array.from(new Set(cartItems.map(item => item.supplier).filter((s): s is string => s !== null)))
     const expenseDescription = uniqueSuppliers.length === 1 
       ? `Supplies - ${uniqueSuppliers[0]}`
       : `Supplies - ${uniqueSuppliers.join(', ')}`
@@ -500,14 +500,14 @@ export default function AirbnbProductsPage() {
                             <p className="text-sm font-medium mt-1">
                               ${item.price.toFixed(2)} at {item.supplier}
                             </p>
-                            {priceComparison !== null && (
+                            {priceComparison !== null && product && product.last_price !== null && (
                               <p
                                 className={`text-xs mt-1 ${
                                   priceComparison > 0 ? 'text-red-600' : 'text-green-600'
                                 }`}
                               >
                                 {priceComparison > 0 ? '+' : ''}
-                                {priceComparison.toFixed(2)} vs last price ({product.last_price?.toFixed(2)})
+                                {priceComparison.toFixed(2)} vs last price ({product.last_price.toFixed(2)})
                               </p>
                             )}
                           </div>

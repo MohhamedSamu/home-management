@@ -136,7 +136,7 @@ export default function AirbnbInventoryPage() {
           <div>
             <label className="block text-sm font-medium mb-1">Filter by Inventory Level</label>
             <select
-              value={filterInventoryLevel}
+              value={filterInventoryLevel ?? ''}
               onChange={(e) => setFilterInventoryLevel(e.target.value as InventoryLevel | '')}
               className="w-full px-3 py-2 border rounded-lg"
             >

@@ -1,0 +1,13 @@
+PWA Icons Required:
+
+You need to create two PNG icons for the PWA:
+- icon-192x192.png (192x192 pixels)
+- icon-512x512.png (512x512 pixels)
+
+These icons should be:
+- Square images
+- Simple, recognizable design
+- Suitable for app icons on mobile devices
+
+You can use any image editing tool or online generator to create these.
+Once created, replace this file with your actual icon files.

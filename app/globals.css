@@ -26,3 +26,54 @@ body {
   }
 }
 
+/* Input styling - ensure black text on white background */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+input[type="tel"],
+select,
+textarea {
+  color: rgb(0, 0, 0) !important;
+  background-color: rgb(255, 255, 255) !important;
+}
+
+input[type="text"]::placeholder,
+input[type="number"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+input[type="search"]::placeholder,
+input[type="tel"]::placeholder,
+textarea::placeholder {
+  color: rgb(107, 114, 128) !important;
+  opacity: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  select,
+  textarea {
+    color: rgb(237, 237, 237) !important;
+    background-color: rgb(17, 24, 39) !important;
+  }
+
+  input[type="text"]::placeholder,
+  input[type="number"]::placeholder,
+  input[type="email"]::placeholder,
+  input[type="password"]::placeholder,
+  input[type="search"]::placeholder,
+  input[type="tel"]::placeholder,
+  textarea::placeholder {
+    color: rgb(156, 163, 175) !important;
+    opacity: 1;
+  }
+}
+

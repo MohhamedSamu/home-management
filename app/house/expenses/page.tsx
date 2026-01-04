@@ -30,8 +30,6 @@ export default function ExpensesPage() {
     amount: '',
     description: '',
     category: 'general',
-    is_recurring: false,
-    recurring_day: '',
     date: format(new Date(), 'yyyy-MM-dd'),
   })
 
@@ -68,10 +66,8 @@ export default function ExpensesPage() {
         amount: parseFloat(formData.amount),
         description: formData.description,
         category: formData.category,
-        is_recurring: formData.is_recurring,
-        recurring_day: formData.is_recurring && formData.recurring_day
-          ? parseInt(formData.recurring_day)
-          : null,
+        is_recurring: false,
+        recurring_day: null,
         date: formData.date,
       })
 
@@ -81,8 +77,6 @@ export default function ExpensesPage() {
         amount: '',
         description: '',
         category: 'general',
-        is_recurring: false,
-        recurring_day: '',
         date: format(new Date(), 'yyyy-MM-dd'),
       })
       setShowForm(false)
@@ -106,20 +100,7 @@ export default function ExpensesPage() {
     }
   }
 
-  const totalMonthlyRecurring = expenses
-    .filter((exp) => exp.is_recurring)
-    .reduce((sum, exp) => sum + exp.amount, 0)
-
-  const totalThisMonth = expenses
-    .filter((exp) => {
-      const expenseDate = new Date(exp.date)
-      const now = new Date()
-      return (
-        expenseDate.getMonth() === now.getMonth() &&
-        expenseDate.getFullYear() === now.getFullYear()
-      )
-    })
-    .reduce((sum, exp) => sum + exp.amount, 0)
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
 
   if (loading) {
     return (
@@ -133,20 +114,16 @@ export default function ExpensesPage() {
     <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <Link href="/economy" className="text-blue-600 hover:underline mb-4 inline-block">
-            ← Back to Economy
+          <Link href="/house" className="text-blue-600 hover:underline mb-4 inline-block">
+            ← Back to House
           </Link>
           <h1 className="text-4xl font-bold">Expenses</h1>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 mb-8">
+        <div className="mb-8">
           <div className="p-4 border rounded-lg">
-            <h3 className="text-sm text-gray-600 dark:text-gray-400">Monthly Recurring</h3>
-            <p className="text-2xl font-bold">${totalMonthlyRecurring.toFixed(2)}</p>
-          </div>
-          <div className="p-4 border rounded-lg">
-            <h3 className="text-sm text-gray-600 dark:text-gray-400">This Month Total</h3>
-            <p className="text-2xl font-bold">${totalThisMonth.toFixed(2)}</p>
+            <h3 className="text-sm text-gray-600 dark:text-gray-400">Total Expenses</h3>
+            <p className="text-2xl font-bold">${totalExpenses.toFixed(2)}</p>
           </div>
         </div>
 
@@ -208,35 +185,6 @@ export default function ExpensesPage() {
                   ))}
                 </select>
               </div>
-              <div className="md:col-span-2">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_recurring}
-                    onChange={(e) =>
-                      setFormData({ ...formData, is_recurring: e.target.checked })
-                    }
-                  />
-                  <span>Recurring expense (e.g., monthly bills)</span>
-                </label>
-              </div>
-              {formData.is_recurring && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Day of month (1-31)
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={formData.recurring_day}
-                    onChange={(e) =>
-                      setFormData({ ...formData, recurring_day: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border rounded-lg"
-                  />
-                </div>
-              )}
             </div>
             <button
               type="submit"
@@ -258,11 +206,6 @@ export default function ExpensesPage() {
                   <h3 className="font-semibold">{expense.description}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {format(parseLocalDate(expense.date), 'MMM dd, yyyy')} • {expense.category}
-                    {expense.is_recurring && (
-                      <span className="ml-2 px-2 py-1 bg-blue-100 dark:bg-blue-900 rounded text-xs">
-                        Recurring (day {expense.recurring_day})
-                      </span>
-                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-4">

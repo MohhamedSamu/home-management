@@ -18,12 +18,12 @@ export default function Home() {
           </Link>
 
           <Link 
-            href="/economy" 
+            href="/house" 
             className="p-6 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            <h2 className="text-2xl font-semibold mb-2">Economy</h2>
+            <h2 className="text-2xl font-semibold mb-2">House</h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Manage income, expenses, and supermarket budget
+              Manage income, expenses, and shopping for your house
             </p>
           </Link>
 

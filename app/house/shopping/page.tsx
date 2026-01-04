@@ -64,12 +64,11 @@ export default function ShoppingPage() {
   const [airbnbCartItems, setAirbnbCartItems] = useState<AirbnbCartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [currentMode, setCurrentMode] = useState<ShoppingMode>('house')
-  const [currentSupermarket, setCurrentSupermarket] = useState('')
-  const [currentSupplier, setCurrentSupplier] = useState('')
   const [showNewProductForm, setShowNewProductForm] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<HouseProduct | AirbnbProduct | null>(null)
+  const [selectedProductType, setSelectedProductType] = useState<'house' | 'airbnb' | null>(null)
   const [newProductData, setNewProductData] = useState({
+    mode: 'house' as ShoppingMode,
     name: '',
     weight: '',
     brand: '',
@@ -124,45 +123,39 @@ export default function ShoppingPage() {
     }
   }
 
-  // Get current products based on mode
-  const currentProducts = currentMode === 'house' ? houseProducts : airbnbProducts
-  const currentCartItems = currentMode === 'house' ? houseCartItems : airbnbCartItems
+  // Combine both product lists for display
+  const allProducts = [
+    ...houseProducts.map((p) => ({ ...p, productType: 'house' as const })),
+    ...airbnbProducts.map((p) => ({ ...p, productType: 'airbnb' as const })),
+  ]
 
-  const filteredProducts = currentProducts.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase())
-    if (currentMode === 'house') {
-      const houseProduct = product as HouseProduct
-      const matchesSupermarket = !currentSupermarket || 
-        (houseProduct.supermarket && houseProduct.supermarket.toLowerCase().includes(currentSupermarket.toLowerCase()))
-      return matchesSearch && matchesSupermarket
-    } else {
-      const airbnbProduct = product as AirbnbProduct
-      const matchesSupplier = !currentSupplier || 
-        (airbnbProduct.supplier && airbnbProduct.supplier.toLowerCase().includes(currentSupplier.toLowerCase()))
-      return matchesSearch && matchesSupplier
-    }
+  const filteredProducts = allProducts.filter((product) => {
+    return product.name.toLowerCase().includes(searchQuery.toLowerCase())
   })
 
-  const handleAddToCart = (product: HouseProduct | AirbnbProduct) => {
+  const handleAddToCart = (product: HouseProduct | AirbnbProduct, productType: 'house' | 'airbnb') => {
     setSelectedProduct(product)
-    if (currentMode === 'house') {
+    setSelectedProductType(productType)
+    if (productType === 'house') {
       const houseProduct = product as HouseProduct
       setNewProductData({
+        mode: 'house',
         name: houseProduct.name,
         weight: houseProduct.weight || '',
         brand: houseProduct.brand || '',
-        supermarket: currentSupermarket || houseProduct.supermarket || '',
+        supermarket: houseProduct.supermarket || '',
         supplier: '',
         price: '',
       })
     } else {
       const airbnbProduct = product as AirbnbProduct
       setNewProductData({
+        mode: 'airbnb',
         name: airbnbProduct.name,
         weight: airbnbProduct.weight || '',
         brand: airbnbProduct.brand || '',
         supermarket: '',
-        supplier: currentSupplier || airbnbProduct.supplier || '',
+        supplier: airbnbProduct.supplier || '',
         price: '',
       })
     }
@@ -175,7 +168,7 @@ export default function ShoppingPage() {
       return
     }
 
-    if (currentMode === 'house') {
+    if (newProductData.mode === 'house') {
       if (!newProductData.supermarket) {
         alert('Please fill in supermarket name')
         return
@@ -186,7 +179,7 @@ export default function ShoppingPage() {
         brand: newProductData.brand,
         price: parseFloat(newProductData.price),
         supermarket: newProductData.supermarket,
-        product_id: (selectedProduct as HouseProduct)?.id || null,
+        product_id: (selectedProductType === 'house' && selectedProduct) ? (selectedProduct as HouseProduct).id : null,
       }
       setHouseCartItems([...houseCartItems, newItem])
     } else {
@@ -200,14 +193,16 @@ export default function ShoppingPage() {
         brand: newProductData.brand,
         price: parseFloat(newProductData.price),
         supplier: newProductData.supplier,
-        product_id: (selectedProduct as AirbnbProduct)?.id || null,
+        product_id: (selectedProductType === 'airbnb' && selectedProduct) ? (selectedProduct as AirbnbProduct).id : null,
       }
       setAirbnbCartItems([...airbnbCartItems, newItem])
     }
 
     setShowNewProductForm(false)
     setSelectedProduct(null)
+    setSelectedProductType(null)
     setNewProductData({
+      mode: 'house',
       name: '',
       weight: '',
       brand: '',
@@ -235,8 +230,7 @@ export default function ShoppingPage() {
       // Save House Cart
       if (houseCartItems.length > 0) {
         const houseTotal = houseCartItems.reduce((sum, item) => sum + item.price, 0)
-        const cartSupermarket = currentSupermarket || 
-          (houseCartItems.length > 0 ? houseCartItems[0].supermarket : 'Unknown')
+        const cartSupermarket = houseCartItems.length > 0 ? houseCartItems[0].supermarket : 'Unknown'
 
         // Create house cart
         const { data: houseCart, error: houseCartError } = await supabase
@@ -309,8 +303,7 @@ export default function ShoppingPage() {
       // Save Airbnb Cart
       if (airbnbCartItems.length > 0) {
         const airbnbTotal = airbnbCartItems.reduce((sum, item) => sum + item.price, 0)
-        const cartSupplier = currentSupplier || 
-          (airbnbCartItems.length > 0 ? airbnbCartItems[0].supplier : 'Unknown')
+        const cartSupplier = airbnbCartItems.length > 0 ? airbnbCartItems[0].supplier : 'Unknown'
         const uniqueSuppliers = Array.from(new Set(airbnbCartItems.map(item => item.supplier).filter((s): s is string => s !== null)))
         const expenseDescription = uniqueSuppliers.length === 1 
           ? `Supplies - ${uniqueSuppliers[0]}`
@@ -382,8 +375,6 @@ export default function ShoppingPage() {
 
       setHouseCartItems([])
       setAirbnbCartItems([])
-      setCurrentSupermarket('')
-      setCurrentSupplier('')
       fetchProducts()
       alert('Carts saved successfully!')
     } catch (error) {
@@ -408,8 +399,8 @@ export default function ShoppingPage() {
     <main className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <Link href="/economy" className="text-blue-600 hover:underline mb-4 inline-block">
-            ← Back to Economy
+          <Link href="/house" className="text-blue-600 hover:underline mb-4 inline-block">
+            ← Back to House
           </Link>
           <h1 className="text-4xl font-bold">Shopping Cart</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
@@ -417,61 +408,11 @@ export default function ShoppingPage() {
           </p>
         </div>
 
-        {/* Mode Toggle */}
-        <div className="mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-medium">Shopping Mode:</label>
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setCurrentMode('house')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                  currentMode === 'house'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                House
-              </button>
-              <button
-                onClick={() => setCurrentMode('airbnb')}
-                className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                  currentMode === 'airbnb'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-              >
-                Airbnb
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Supplier/Supermarket Input */}
-        <div className="mb-4">
-          {currentMode === 'house' ? (
-            <label className="block text-sm font-medium mb-1">Supermarket Name (Optional Filter)</label>
-          ) : (
-            <label className="block text-sm font-medium mb-1">Supplier Name (Optional Filter)</label>
-          )}
-          <input
-            type="text"
-            value={currentMode === 'house' ? currentSupermarket : currentSupplier}
-            onChange={(e) => {
-              if (currentMode === 'house') {
-                setCurrentSupermarket(e.target.value)
-              } else {
-                setCurrentSupplier(e.target.value)
-              }
-            }}
-            placeholder={currentMode === 'house' ? 'e.g., Walmart, Target, etc.' : 'e.g., Amazon, Walmart, etc.'}
-            className="w-full md:w-64 px-3 py-2 border rounded-lg"
-          />
-        </div>
 
         <div className="grid gap-8 lg:grid-cols-2">
           {/* Product Search Section */}
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Search Products ({currentMode === 'house' ? 'House' : 'Airbnb'})</h2>
+            <h2 className="text-2xl font-semibold mb-4">Search Products</h2>
             <div className="mb-4">
               <input
                 type="text"
@@ -488,43 +429,57 @@ export default function ShoppingPage() {
                   {searchQuery ? 'No products found' : 'No products yet. Add items to cart to create products.'}
                 </p>
               ) : (
-                filteredProducts.map((product) => (
-                  <div
-                    key={product.id}
-                    className={`p-4 border rounded-lg ${getInventoryBackgroundColor(product.inventory_level)}`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <h3 className="font-semibold">{product.name}</h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
-                          {product.brand && `Brand: ${product.brand}`}
-                          {product.brand && product.weight && ' • '}
-                          {product.weight && `Weight: ${product.weight}`}
-                        </p>
-                        {product.last_price && (
-                          <p className="text-sm font-medium mt-1">
-                            Last price: ${product.last_price.toFixed(2)}
-                            {currentMode === 'house' 
-                              ? (product as HouseProduct).supermarket && ` at ${(product as HouseProduct).supermarket}`
-                              : (product as AirbnbProduct).supplier && ` at ${(product as AirbnbProduct).supplier}`
-                            }
+                filteredProducts.map((product) => {
+                  const productType = product.productType
+                  const isHouse = productType === 'house'
+                  const houseProduct = isHouse ? product as HouseProduct & { productType: 'house' } : null
+                  const airbnbProduct = !isHouse ? product as AirbnbProduct & { productType: 'airbnb' } : null
+                  
+                  return (
+                    <div
+                      key={product.id}
+                      className={`p-4 border rounded-lg ${getInventoryBackgroundColor(product.inventory_level)}`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold">{product.name}</h3>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              productType === 'house'
+                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                                : 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                            }`}>
+                              {productType === 'house' ? 'House' : 'Airbnb'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            {product.brand && `Brand: ${product.brand}`}
+                            {product.brand && product.weight && ' • '}
+                            {product.weight && `Weight: ${product.weight}`}
                           </p>
-                        )}
-                        {product.last_purchase_date && (
-                          <p className="text-xs text-gray-500">
-                            Last bought: {format(parseLocalDate(product.last_purchase_date), 'MMM dd, yyyy')}
-                          </p>
-                        )}
+                          {product.last_price && (
+                            <p className="text-sm font-medium mt-1">
+                              Last price: ${product.last_price.toFixed(2)}
+                              {isHouse && houseProduct?.supermarket && ` at ${houseProduct.supermarket}`}
+                              {!isHouse && airbnbProduct?.supplier && ` at ${airbnbProduct.supplier}`}
+                            </p>
+                          )}
+                          {product.last_purchase_date && (
+                            <p className="text-xs text-gray-500">
+                              Last bought: {format(parseLocalDate(product.last_purchase_date), 'MMM dd, yyyy')}
+                            </p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleAddToCart(product, productType)}
+                          className="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+                        >
+                          Add
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleAddToCart(product)}
-                        className="ml-4 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                      >
-                        Add
-                      </button>
                     </div>
-                  </div>
-                ))
+                  )
+                })
               )}
             </div>
 
@@ -540,6 +495,17 @@ export default function ShoppingPage() {
                   </p>
                 )}
                 <div className="space-y-2">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Shopping Mode</label>
+                    <select
+                      value={newProductData.mode}
+                      onChange={(e) => setNewProductData({ ...newProductData, mode: e.target.value as ShoppingMode })}
+                      className="w-full px-3 py-2 border rounded"
+                    >
+                      <option value="house">House</option>
+                      <option value="airbnb">Airbnb</option>
+                    </select>
+                  </div>
                   <input
                     type="text"
                     placeholder="Product name"
@@ -561,7 +527,7 @@ export default function ShoppingPage() {
                     onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
                     className="w-full px-3 py-2 border rounded"
                   />
-                  {currentMode === 'house' ? (
+                  {newProductData.mode === 'house' ? (
                     <input
                       type="text"
                       placeholder="Supermarket"
@@ -597,6 +563,7 @@ export default function ShoppingPage() {
                       onClick={() => {
                         setShowNewProductForm(false)
                         setSelectedProduct(null)
+                        setSelectedProductType(null)
                       }}
                       className="px-3 py-2 border rounded"
                     >
@@ -613,11 +580,12 @@ export default function ShoppingPage() {
                   setShowNewProductForm(true)
                   setSelectedProduct(null)
                   setNewProductData({
+                    mode: 'house',
                     name: searchQuery,
                     weight: '',
                     brand: '',
-                    supermarket: currentSupermarket,
-                    supplier: currentSupplier,
+                    supermarket: '',
+                    supplier: '',
                     price: '',
                   })
                 }}

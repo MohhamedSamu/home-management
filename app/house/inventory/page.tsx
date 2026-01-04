@@ -31,6 +31,14 @@ export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [filterSupermarket, setFilterSupermarket] = useState('')
   const [filterInventoryLevel, setFilterInventoryLevel] = useState<InventoryLevel | ''>('')
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newProductData, setNewProductData] = useState({
+    name: '',
+    weight: '',
+    brand: '',
+    supermarket: '',
+    inventory_level: 'full' as InventoryLevel,
+  })
 
   const userId = getUserId()
 
@@ -70,6 +78,42 @@ export default function InventoryPage() {
     }
   }
 
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newProductData.name.trim()) {
+      alert('Please enter a product name')
+      return
+    }
+
+    try {
+      const { error } = await supabase.from('products').insert({
+        user_id: userId,
+        name: newProductData.name.trim(),
+        weight: newProductData.weight.trim() || null,
+        brand: newProductData.brand.trim() || null,
+        supermarket: newProductData.supermarket.trim() || null,
+        inventory_level: newProductData.inventory_level,
+        last_price: null,
+        last_purchase_date: null,
+      })
+
+      if (error) throw error
+
+      setNewProductData({
+        name: '',
+        weight: '',
+        brand: '',
+        supermarket: '',
+        inventory_level: 'full',
+      })
+      setShowAddForm(false)
+      fetchProducts()
+    } catch (error) {
+      console.error('Error adding product:', error)
+      alert('Error adding product. Please try again.')
+    }
+  }
+
   const getInventoryBackgroundColor = (level: InventoryLevel): string => {
     switch (level) {
       case 'full':
@@ -105,12 +149,12 @@ export default function InventoryPage() {
     <main className="min-h-screen p-8">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <Link href="/economy" className="text-blue-600 hover:underline mb-4 inline-block">
-            ← Back to Economy
+          <Link href="/house" className="text-blue-600 hover:underline mb-4 inline-block">
+            ← Back to House
           </Link>
           <h1 className="text-4xl font-bold">House Inventory</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            View all products in your household inventory
+            Track inventory levels for products in your household
           </p>
         </div>
 
@@ -151,11 +195,91 @@ export default function InventoryPage() {
           </div>
         </div>
 
-        <div className="mb-4">
+        <div className="mb-4 flex justify-between items-center">
           <p className="text-sm text-gray-600 dark:text-gray-400">
             Total products: {filteredProducts.length}
           </p>
+          <button
+            onClick={() => setShowAddForm(!showAddForm)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {showAddForm ? 'Cancel' : '+ Add Product to Inventory'}
+          </button>
         </div>
+
+        {showAddForm && (
+          <form onSubmit={handleAddProduct} className="mb-6 p-4 border rounded-lg">
+            <h3 className="text-lg font-semibold mb-4">Add Product to Inventory</h3>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="block text-sm font-medium mb-1">Product Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={newProductData.name}
+                  onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="e.g., Beans, Shampoo, etc."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Inventory Level *</label>
+                <select
+                  value={newProductData.inventory_level || ''}
+                  onChange={(e) =>
+                    setNewProductData({ ...newProductData, inventory_level: e.target.value as InventoryLevel })
+                  }
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required
+                >
+                  <option value="full">Full</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                  <option value="none">None</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Weight (optional)</label>
+                <input
+                  type="text"
+                  value={newProductData.weight}
+                  onChange={(e) => setNewProductData({ ...newProductData, weight: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="e.g., 500g, 1kg, etc."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Brand (optional)</label>
+                <input
+                  type="text"
+                  value={newProductData.brand}
+                  onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="e.g., Coca-Cola, Dove, etc."
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-1">Supermarket (optional)</label>
+                <input
+                  type="text"
+                  value={newProductData.supermarket}
+                  onChange={(e) => setNewProductData({ ...newProductData, supermarket: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="e.g., Walmart, Target, etc. (for future reference)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This is just for reference - no cost will be associated with this product
+                </p>
+              </div>
+            </div>
+            <button
+              type="submit"
+              className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              Add to Inventory
+            </button>
+          </form>
+        )}
 
         <div className="space-y-2">
           {filteredProducts.length === 0 ? (

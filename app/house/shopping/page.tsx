@@ -57,6 +57,8 @@ interface AirbnbCartItem {
   supplier: string
 }
 
+const SUPERMARKETS = ['Walmart', 'Pricesmart', 'Super Selectos', 'Agromercado'] as const
+
 export default function ShoppingPage() {
   const [houseProducts, setHouseProducts] = useState<HouseProduct[]>([])
   const [airbnbProducts, setAirbnbProducts] = useState<AirbnbProduct[]>([])
@@ -64,9 +66,15 @@ export default function ShoppingPage() {
   const [airbnbCartItems, setAirbnbCartItems] = useState<AirbnbCartItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedSupermarket, setSelectedSupermarket] = useState<string>('')
   const [showNewProductForm, setShowNewProductForm] = useState(false)
+  const [showEmptyCartModal, setShowEmptyCartModal] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState<HouseProduct | AirbnbProduct | null>(null)
   const [selectedProductType, setSelectedProductType] = useState<'house' | 'airbnb' | null>(null)
+  const [productNameSuggestions, setProductNameSuggestions] = useState<string[]>([])
+  const [brandSuggestions, setBrandSuggestions] = useState<string[]>([])
+  const [showNameSuggestions, setShowNameSuggestions] = useState(false)
+  const [showBrandSuggestions, setShowBrandSuggestions] = useState(false)
   const [newProductData, setNewProductData] = useState({
     mode: 'house' as ShoppingMode,
     name: '',
@@ -79,9 +87,49 @@ export default function ShoppingPage() {
 
   const userId = getUserId()
 
+  // Load cart from localStorage on mount
   useEffect(() => {
+    const savedHouseCart = localStorage.getItem('houseCartItems')
+    const savedAirbnbCart = localStorage.getItem('airbnbCartItems')
+    const savedSupermarket = localStorage.getItem('selectedSupermarket')
+    
+    if (savedHouseCart) {
+      try {
+        setHouseCartItems(JSON.parse(savedHouseCart))
+      } catch (error) {
+        console.error('Error loading house cart from localStorage:', error)
+      }
+    }
+    
+    if (savedAirbnbCart) {
+      try {
+        setAirbnbCartItems(JSON.parse(savedAirbnbCart))
+      } catch (error) {
+        console.error('Error loading airbnb cart from localStorage:', error)
+      }
+    }
+
+    if (savedSupermarket) {
+      setSelectedSupermarket(savedSupermarket)
+    }
+    
     fetchProducts()
   }, [])
+
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('houseCartItems', JSON.stringify(houseCartItems))
+  }, [houseCartItems])
+
+  useEffect(() => {
+    localStorage.setItem('airbnbCartItems', JSON.stringify(airbnbCartItems))
+  }, [airbnbCartItems])
+
+  useEffect(() => {
+    if (selectedSupermarket) {
+      localStorage.setItem('selectedSupermarket', selectedSupermarket)
+    }
+  }, [selectedSupermarket])
 
   const fetchProducts = async () => {
     try {
@@ -133,6 +181,40 @@ export default function ShoppingPage() {
     return product.name.toLowerCase().includes(searchQuery.toLowerCase())
   })
 
+  // Get unique product names and brands for autocomplete
+  const uniqueProductNames = Array.from(new Set(houseProducts.map(p => p.name).filter(Boolean)))
+  const uniqueBrands = Array.from(new Set([
+    ...houseProducts.map(p => p.brand).filter(Boolean),
+    ...airbnbProducts.map(p => p.brand).filter(Boolean)
+  ]))
+
+  // Filter suggestions based on input
+  useEffect(() => {
+    if (newProductData.name.length > 0) {
+      const filtered = uniqueProductNames
+        .filter(name => name.toLowerCase().includes(newProductData.name.toLowerCase()))
+        .slice(0, 5)
+      setProductNameSuggestions(filtered)
+      setShowNameSuggestions(filtered.length > 0)
+    } else {
+      setProductNameSuggestions([])
+      setShowNameSuggestions(false)
+    }
+  }, [newProductData.name, uniqueProductNames])
+
+  useEffect(() => {
+    if (newProductData.brand.length > 0) {
+      const filtered = uniqueBrands
+        .filter(brand => brand.toLowerCase().includes(newProductData.brand.toLowerCase()))
+        .slice(0, 5)
+      setBrandSuggestions(filtered)
+      setShowBrandSuggestions(filtered.length > 0)
+    } else {
+      setBrandSuggestions([])
+      setShowBrandSuggestions(false)
+    }
+  }, [newProductData.brand, uniqueBrands])
+
   const handleAddToCart = (product: HouseProduct | AirbnbProduct, productType: 'house' | 'airbnb') => {
     setSelectedProduct(product)
     setSelectedProductType(productType)
@@ -143,7 +225,7 @@ export default function ShoppingPage() {
         name: houseProduct.name,
         weight: houseProduct.weight || '',
         brand: houseProduct.brand || '',
-        supermarket: houseProduct.supermarket || '',
+        supermarket: selectedSupermarket || houseProduct.supermarket || SUPERMARKETS[0] || '',
         supplier: '',
         price: '',
       })
@@ -169,8 +251,9 @@ export default function ShoppingPage() {
     }
 
     if (newProductData.mode === 'house') {
-      if (!newProductData.supermarket) {
-        alert('Please fill in supermarket name')
+      const supermarket = selectedSupermarket || newProductData.supermarket
+      if (!supermarket) {
+        alert('Please select a supermarket')
         return
       }
       const newItem: HouseCartItem = {
@@ -178,7 +261,7 @@ export default function ShoppingPage() {
         weight: newProductData.weight,
         brand: newProductData.brand,
         price: parseFloat(newProductData.price),
-        supermarket: newProductData.supermarket,
+        supermarket: supermarket,
         product_id: (selectedProductType === 'house' && selectedProduct) ? (selectedProduct as HouseProduct).id : null,
       }
       setHouseCartItems([...houseCartItems, newItem])
@@ -201,12 +284,14 @@ export default function ShoppingPage() {
     setShowNewProductForm(false)
     setSelectedProduct(null)
     setSelectedProductType(null)
+    setShowNameSuggestions(false)
+    setShowBrandSuggestions(false)
     setNewProductData({
       mode: 'house',
       name: '',
       weight: '',
       brand: '',
-      supermarket: '',
+      supermarket: selectedSupermarket,
       supplier: '',
       price: '',
     })
@@ -218,6 +303,16 @@ export default function ShoppingPage() {
     } else {
       setAirbnbCartItems(airbnbCartItems.filter((_, i) => i !== index))
     }
+  }
+
+  const handleEmptyCart = () => {
+    setShowEmptyCartModal(true)
+  }
+
+  const confirmEmptyCart = () => {
+    setHouseCartItems([])
+    setAirbnbCartItems([])
+    setShowEmptyCartModal(false)
   }
 
   const handleSaveCarts = async () => {
@@ -375,6 +470,9 @@ export default function ShoppingPage() {
 
       setHouseCartItems([])
       setAirbnbCartItems([])
+      // Clear localStorage after saving
+      localStorage.removeItem('houseCartItems')
+      localStorage.removeItem('airbnbCartItems')
       fetchProducts()
       alert('Carts saved successfully!')
     } catch (error) {
@@ -406,6 +504,29 @@ export default function ShoppingPage() {
           <p className="text-gray-600 dark:text-gray-400 mt-2">
             Manage shopping for both House and Airbnb
           </p>
+        </div>
+
+        {/* General Supermarket Selector */}
+        <div className="mb-6 p-4 border rounded-lg bg-gray-50 dark:bg-gray-900">
+          <label className="block text-sm font-medium mb-2">Select Supermarket (for all House products)</label>
+          <select
+            value={selectedSupermarket}
+            onChange={(e) => {
+              setSelectedSupermarket(e.target.value)
+              // Update supermarket in form if it's open and mode is house
+              if (showNewProductForm && newProductData.mode === 'house') {
+                setNewProductData({ ...newProductData, supermarket: e.target.value })
+              }
+            }}
+            className="w-full md:w-64 px-3 py-2 border rounded-lg"
+          >
+            <option value="">Select supermarket...</option>
+            {SUPERMARKETS.map((supermarket) => (
+              <option key={supermarket} value={supermarket}>
+                {supermarket}
+              </option>
+            ))}
+          </select>
         </div>
 
 
@@ -499,20 +620,55 @@ export default function ShoppingPage() {
                     <label className="block text-sm font-medium mb-1">Shopping Mode</label>
                     <select
                       value={newProductData.mode}
-                      onChange={(e) => setNewProductData({ ...newProductData, mode: e.target.value as ShoppingMode })}
+                      onChange={(e) => {
+                        const newMode = e.target.value as ShoppingMode
+                        setNewProductData({ 
+                          ...newProductData, 
+                          mode: newMode,
+                          supermarket: newMode === 'house' ? (selectedSupermarket || newProductData.supermarket) : '',
+                        })
+                      }}
                       className="w-full px-3 py-2 border rounded"
                     >
                       <option value="house">House</option>
                       <option value="airbnb">Airbnb</option>
                     </select>
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Product name"
-                    value={newProductData.name}
-                    onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
-                    className="w-full px-3 py-2 border rounded"
-                  />
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Product name"
+                      value={newProductData.name}
+                      onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
+                      onFocus={() => {
+                        if (productNameSuggestions.length > 0) {
+                          setShowNameSuggestions(true)
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay to allow click on suggestion
+                        setTimeout(() => setShowNameSuggestions(false), 200)
+                      }}
+                      className="w-full px-3 py-2 border rounded"
+                    />
+                    {showNameSuggestions && productNameSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {productNameSuggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setNewProductData({ ...newProductData, name: suggestion })
+                              setShowNameSuggestions(false)
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <input
                     type="text"
                     placeholder="Weight (optional)"
@@ -520,21 +676,54 @@ export default function ShoppingPage() {
                     onChange={(e) => setNewProductData({ ...newProductData, weight: e.target.value })}
                     className="w-full px-3 py-2 border rounded"
                   />
-                  <input
-                    type="text"
-                    placeholder="Brand (optional)"
-                    value={newProductData.brand}
-                    onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
-                    className="w-full px-3 py-2 border rounded"
-                  />
-                  {newProductData.mode === 'house' ? (
+                  <div className="relative">
                     <input
                       type="text"
-                      placeholder="Supermarket"
-                      value={newProductData.supermarket}
-                      onChange={(e) => setNewProductData({ ...newProductData, supermarket: e.target.value })}
+                      placeholder="Brand (optional)"
+                      value={newProductData.brand}
+                      onChange={(e) => setNewProductData({ ...newProductData, brand: e.target.value })}
+                      onFocus={() => {
+                        if (brandSuggestions.length > 0) {
+                          setShowBrandSuggestions(true)
+                        }
+                      }}
+                      onBlur={() => {
+                        // Delay to allow click on suggestion
+                        setTimeout(() => setShowBrandSuggestions(false), 200)
+                      }}
                       className="w-full px-3 py-2 border rounded"
                     />
+                    {showBrandSuggestions && brandSuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {brandSuggestions.map((suggestion, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              setNewProductData({ ...newProductData, brand: suggestion })
+                              setShowBrandSuggestions(false)
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {newProductData.mode === 'house' ? (
+                    <select
+                      value={newProductData.supermarket || selectedSupermarket}
+                      onChange={(e) => setNewProductData({ ...newProductData, supermarket: e.target.value })}
+                      className="w-full px-3 py-2 border rounded"
+                    >
+                      <option value="">Select supermarket...</option>
+                      {SUPERMARKETS.map((supermarket) => (
+                        <option key={supermarket} value={supermarket}>
+                          {supermarket}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <input
                       type="text"
@@ -584,7 +773,7 @@ export default function ShoppingPage() {
                     name: searchQuery,
                     weight: '',
                     brand: '',
-                    supermarket: '',
+                    supermarket: selectedSupermarket,
                     supplier: '',
                     price: '',
                   })
@@ -724,15 +913,50 @@ export default function ShoppingPage() {
                 <span className="text-xl font-bold">Combined Total:</span>
                 <span className="text-2xl font-bold">${combinedTotal.toFixed(2)}</span>
               </div>
-              <button
-                onClick={handleSaveCarts}
-                className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
-              >
-                Save All Carts & Update Inventory
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleEmptyCart}
+                  disabled={houseCartItems.length === 0 && airbnbCartItems.length === 0}
+                  className="flex-1 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  Empty Cart
+                </button>
+                <button
+                  onClick={handleSaveCarts}
+                  className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+                >
+                  Save All Carts & Update Inventory
+                </button>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Empty Cart Confirmation Modal */}
+        {showEmptyCartModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
+              <h3 className="text-xl font-bold mb-4">Empty Cart?</h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Are you sure you want to clear all items from your cart? This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={confirmEmptyCart}
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold"
+                >
+                  Yes, Empty Cart
+                </button>
+                <button
+                  onClick={() => setShowEmptyCartModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-700 font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
   )

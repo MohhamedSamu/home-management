@@ -25,7 +25,9 @@ export default function TodosPage() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed'>('all')
+  const [priorityFilter, setPriorityFilter] = useState<'all' | 'high' | 'mid' | 'low'>('all')
+  const [recurringFilter, setRecurringFilter] = useState<'all' | 'recurring' | 'non-recurring'>('all')
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -275,8 +277,17 @@ export default function TodosPage() {
   }
 
   const filteredTodos = todos.filter((todo) => {
-    if (filter === 'active') return !todo.completed
-    if (filter === 'completed') return todo.completed
+    // Status filter
+    if (statusFilter === 'active' && todo.completed) return false
+    if (statusFilter === 'completed' && !todo.completed) return false
+    
+    // Priority filter
+    if (priorityFilter !== 'all' && todo.priority !== priorityFilter) return false
+    
+    // Recurring filter
+    if (recurringFilter === 'recurring' && !todo.is_recurring) return false
+    if (recurringFilter === 'non-recurring' && todo.is_recurring) return false
+    
     return true
   })
 
@@ -313,37 +324,110 @@ export default function TodosPage() {
           <h1 className="text-4xl font-bold">To-Do List</h1>
         </div>
 
-        <div className="mb-6 flex gap-4">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg ${
-              filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilter('active')}
-            className={`px-4 py-2 rounded-lg ${
-              filter === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
-            }`}
-          >
-            Active
-          </button>
-          <button
-            onClick={() => setFilter('completed')}
-            className={`px-4 py-2 rounded-lg ${
-              filter === 'completed' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
-            }`}
-          >
-            Completed
-          </button>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="ml-auto px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            {showForm ? 'Cancel' : '+ Add Todo'}
-          </button>
+        <div className="mb-6 space-y-4">
+          {/* Status Filters */}
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-sm font-medium self-center mr-2">Status:</span>
+            <button
+              onClick={() => setStatusFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                statusFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setStatusFilter('active')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                statusFilter === 'active' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Active
+            </button>
+            <button
+              onClick={() => setStatusFilter('completed')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                statusFilter === 'completed' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Completed
+            </button>
+          </div>
+
+          {/* Priority Filters */}
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-sm font-medium self-center mr-2">Priority:</span>
+            <button
+              onClick={() => setPriorityFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                priorityFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setPriorityFilter('high')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                priorityFilter === 'high' ? 'bg-red-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              High
+            </button>
+            <button
+              onClick={() => setPriorityFilter('mid')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                priorityFilter === 'mid' ? 'bg-yellow-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Mid
+            </button>
+            <button
+              onClick={() => setPriorityFilter('low')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                priorityFilter === 'low' ? 'bg-green-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Low
+            </button>
+          </div>
+
+          {/* Recurring Filters */}
+          <div className="flex gap-2 flex-wrap">
+            <span className="text-sm font-medium self-center mr-2">Type:</span>
+            <button
+              onClick={() => setRecurringFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                recurringFilter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setRecurringFilter('recurring')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                recurringFilter === 'recurring' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Recurring
+            </button>
+            <button
+              onClick={() => setRecurringFilter('non-recurring')}
+              className={`px-3 py-1.5 rounded-lg text-sm ${
+                recurringFilter === 'non-recurring' ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+            >
+              Non-Recurring
+            </button>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              {showForm ? 'Cancel' : '+ Add Todo'}
+            </button>
+          </div>
         </div>
 
         {showForm && (

@@ -182,10 +182,10 @@ export default function ShoppingPage() {
   })
 
   // Get unique product names and brands for autocomplete
-  const uniqueProductNames = Array.from(new Set(houseProducts.map(p => p.name).filter(Boolean)))
+  const uniqueProductNames = Array.from(new Set(houseProducts.map(p => p.name).filter((name): name is string => Boolean(name))))
   const uniqueBrands = Array.from(new Set([
-    ...houseProducts.map(p => p.brand).filter(Boolean),
-    ...airbnbProducts.map(p => p.brand).filter(Boolean)
+    ...houseProducts.map(p => p.brand).filter((brand): brand is string => Boolean(brand)),
+    ...airbnbProducts.map(p => p.brand).filter((brand): brand is string => Boolean(brand))
   ]))
 
   // Filter suggestions based on input

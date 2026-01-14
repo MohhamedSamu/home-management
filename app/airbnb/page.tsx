@@ -46,7 +46,7 @@ export default function AirbnbPage() {
           </Link>
 
           <Link
-            href="/house/shopping"
+            href="/economy/shopping"
             className="p-6 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <h2 className="text-2xl font-semibold mb-2">Shopping</h2>

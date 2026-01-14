@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase/client'
 import { getUserId } from '@/lib/user'
-import { startOfMonth } from 'date-fns'
+import { subMonths, startOfMonth, endOfMonth } from 'date-fns'
 
 // Helper function to parse date string as local date (avoids timezone issues)
 const parseLocalDate = (dateString: string): Date => {
@@ -95,18 +95,23 @@ export default function DashboardPage() {
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
 
-  // Calculate total balances (all income - all expenses)
-  const totalHouseIncome = houseIncomes.reduce((sum, inc) => sum + inc.amount, 0)
-  const totalHouseExpenses = houseExpenses.reduce((sum, exp) => sum + exp.amount, 0)
-  const totalHouseBalance = totalHouseIncome - totalHouseExpenses
+  // Calculate monthly recurring totals
+  const monthlyRecurringHouseIncome = houseIncomes
+    .filter((inc) => inc.is_recurring)
+    .reduce((sum, inc) => sum + inc.amount, 0)
 
-  const totalAirbnbIncome = airbnbIncomes.reduce((sum, inc) => sum + inc.amount, 0)
-  const totalAirbnbExpenses = airbnbExpenses.reduce((sum, exp) => sum + exp.amount, 0)
-  const totalAirbnbBalance = totalAirbnbIncome - totalAirbnbExpenses
+  // Airbnb income is never recurring, so this is always 0
+  const monthlyRecurringAirbnbIncome = 0
 
-  const totalBalance = totalHouseBalance + totalAirbnbBalance
+  const monthlyRecurringHouseExpenses = houseExpenses
+    .filter((exp) => exp.is_recurring)
+    .reduce((sum, exp) => sum + exp.amount, 0)
 
-  // Calculate this month totals for reference
+  const monthlyRecurringAirbnbExpenses = airbnbExpenses
+    .filter((exp) => exp.is_recurring)
+    .reduce((sum, exp) => sum + exp.amount, 0)
+
+  // Calculate this month totals
   const thisMonthHouseIncome = houseIncomes
     .filter((inc) => {
       const incomeDate = parseLocalDate(inc.date)
@@ -135,9 +140,75 @@ export default function DashboardPage() {
     })
     .reduce((sum, exp) => sum + exp.amount, 0)
 
+  // Calculate totals
+  // Note: Airbnb income is never recurring, so total monthly income only includes house recurring income
+  const totalMonthlyIncome = monthlyRecurringHouseIncome
+  const totalMonthlyExpenses = monthlyRecurringHouseExpenses + monthlyRecurringAirbnbExpenses
+  const totalMonthlyCashFlow = totalMonthlyIncome - totalMonthlyExpenses
+
   const totalThisMonthIncome = thisMonthHouseIncome + thisMonthAirbnbIncome
   const totalThisMonthExpenses = thisMonthHouseExpenses + thisMonthAirbnbExpenses
   const totalThisMonthCashFlow = totalThisMonthIncome - totalThisMonthExpenses
+
+  // Calculate previous month's ending balance
+  const previousMonth = subMonths(now, 1)
+  const previousMonthStart = startOfMonth(previousMonth)
+  const previousMonthEnd = endOfMonth(previousMonth)
+
+  const previousMonthHouseIncome = houseIncomes
+    .filter((inc) => {
+      const incomeDate = parseLocalDate(inc.date)
+      return incomeDate >= previousMonthStart && incomeDate <= previousMonthEnd
+    })
+    .reduce((sum, inc) => sum + inc.amount, 0)
+
+  const previousMonthAirbnbIncome = airbnbIncomes
+    .filter((inc) => {
+      const incomeDate = parseLocalDate(inc.date)
+      return incomeDate >= previousMonthStart && incomeDate <= previousMonthEnd
+    })
+    .reduce((sum, inc) => sum + inc.amount, 0)
+
+  const previousMonthHouseExpenses = houseExpenses
+    .filter((exp) => {
+      const expenseDate = parseLocalDate(exp.date)
+      return expenseDate >= previousMonthStart && expenseDate <= previousMonthEnd
+    })
+    .reduce((sum, exp) => sum + exp.amount, 0)
+
+  const previousMonthAirbnbExpenses = airbnbExpenses
+    .filter((exp) => {
+      const expenseDate = parseLocalDate(exp.date)
+      return expenseDate >= previousMonthStart && expenseDate <= previousMonthEnd
+    })
+    .reduce((sum, exp) => sum + exp.amount, 0)
+
+  // Calculate all income and expenses before current month to get accumulated balance
+  const currentMonthStart = startOfMonth(now)
+  const allIncomeBeforeCurrentMonth = [...houseIncomes, ...airbnbIncomes]
+    .filter((item) => {
+      const itemDate = parseLocalDate(item.date)
+      return itemDate < currentMonthStart
+    })
+    .reduce((sum, item) => sum + item.amount, 0)
+
+  const allExpensesBeforeCurrentMonth = [...houseExpenses, ...airbnbExpenses]
+    .filter((item) => {
+      const itemDate = parseLocalDate(item.date)
+      return itemDate < currentMonthStart
+    })
+    .reduce((sum, item) => sum + item.amount, 0)
+
+  const previousMonthEndingBalance = allIncomeBeforeCurrentMonth - allExpensesBeforeCurrentMonth
+
+  // Projected monthly cash flow (planned money for this month)
+  // This shows how much money you'll have at the end of the month based on recurring income and expenses
+  // Projected = Total Monthly Recurring Income - Total Monthly Recurring Expenses
+  const projectedMonthlyCashFlow = totalMonthlyIncome - totalMonthlyExpenses
+
+  // Projected end-of-month balance including previous month's balance
+  // This shows the total money you'll have at the end of this month
+  const projectedEndOfMonthBalance = previousMonthEndingBalance + projectedMonthlyCashFlow
 
   if (loading) {
     return (
@@ -161,60 +232,68 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          <div className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              Total Balance
-            </h3>
-            <p className={`text-4xl font-bold ${totalBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              ${totalBalance.toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              All income - All expenses (House + Airbnb)
-            </p>
-          </div>
-
           <div className="p-6 border rounded-lg bg-green-50 dark:bg-green-900/20">
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              House Balance
-            </h3>
-            <p className={`text-3xl font-bold ${totalHouseBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              ${totalHouseBalance.toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Income: ${totalHouseIncome.toFixed(2)} | Expenses: ${totalHouseExpenses.toFixed(2)}
-            </p>
-          </div>
-
-          <div className="p-6 border rounded-lg bg-purple-50 dark:bg-purple-900/20">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              Airbnb Balance
-            </h3>
-            <p className={`text-3xl font-bold ${totalAirbnbBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-              ${totalAirbnbBalance.toFixed(2)}
-            </p>
-            <p className="text-xs text-gray-500 mt-2">
-              Income: ${totalAirbnbIncome.toFixed(2)} | Expenses: ${totalAirbnbExpenses.toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 mb-8">
-          <div className="p-6 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              This Month Income
+              Total Monthly Income
             </h3>
             <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              ${totalThisMonthIncome.toFixed(2)}
+              ${totalMonthlyIncome.toFixed(2)}
             </p>
             <p className="text-xs text-gray-500 mt-1">
-              House: ${thisMonthHouseIncome.toFixed(2)} | 
-              Airbnb: ${thisMonthAirbnbIncome.toFixed(2)}
+              House: ${monthlyRecurringHouseIncome.toFixed(2)} (recurring only)
+            </p>
+            <p className="text-xs text-gray-400 mt-1 italic">
+              Airbnb income is not recurring
             </p>
           </div>
 
           <div className="p-6 border rounded-lg bg-red-50 dark:bg-red-900/20">
             <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
-              This Month Expenses
+              Monthly Recurring Expenses
+            </h3>
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+              ${totalMonthlyExpenses.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              House: ${monthlyRecurringHouseExpenses.toFixed(2)} | 
+              Airbnb: ${monthlyRecurringAirbnbExpenses.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1 italic">
+              Only recurring expenses (marked as recurring)
+            </p>
+          </div>
+
+          <div className="p-6 border rounded-lg bg-yellow-50 dark:bg-yellow-900/20">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Projected End-of-Month Balance
+            </h3>
+            <p className={`text-2xl font-bold ${projectedEndOfMonthBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              ${projectedEndOfMonthBalance.toFixed(2)}
+            </p>
+            <div className="mt-3 pt-3 border-t border-gray-300 dark:border-gray-700">
+              <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                Carried over from previous month:
+              </p>
+              <p className={`text-lg font-bold ${previousMonthEndingBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                ${previousMonthEndingBalance.toFixed(2)}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                (Total income - Total expenses from all previous months)
+              </p>
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              + Monthly cash flow: ${projectedMonthlyCashFlow.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1 italic">
+              Based on recurring income - recurring expenses
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <div className="p-6 border rounded-lg bg-orange-50 dark:bg-orange-900/20">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Total Expenses This Month
             </h3>
             <p className="text-2xl font-bold text-red-600 dark:text-red-400">
               ${totalThisMonthExpenses.toFixed(2)}
@@ -222,6 +301,33 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-500 mt-1">
               House: ${thisMonthHouseExpenses.toFixed(2)} | 
               Airbnb: ${thisMonthAirbnbExpenses.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-400 mt-1 italic">
+              All expenses (recurring + one-time) this month
+            </p>
+          </div>
+
+          <div className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-900/20">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              This Month Cash Flow
+            </h3>
+            <p className={`text-2xl font-bold ${totalThisMonthCashFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              ${totalThisMonthCashFlow.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Actual cash flow so far this month
+            </p>
+          </div>
+
+          <div className="p-6 border rounded-lg bg-purple-50 dark:bg-purple-900/20">
+            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">
+              Monthly Cash Flow (Recurring)
+            </h3>
+            <p className={`text-2xl font-bold ${totalMonthlyCashFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+              ${totalMonthlyCashFlow.toFixed(2)}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Recurring income - Recurring expenses
             </p>
           </div>
         </div>
@@ -279,7 +385,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Link
-            href="/house/income"
+            href="/economy/income"
             className="p-4 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <h3 className="text-lg font-semibold mb-2">House Income</h3>
@@ -299,7 +405,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link
-            href="/house/expenses"
+            href="/economy/expenses"
             className="p-4 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
             <h3 className="text-lg font-semibold mb-2">House Expenses</h3>

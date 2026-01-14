@@ -18,12 +18,12 @@ export default function Home() {
           </Link>
 
           <Link 
-            href="/house" 
+            href="/economy" 
             className="p-6 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
           >
-            <h2 className="text-2xl font-semibold mb-2">House</h2>
+            <h2 className="text-2xl font-semibold mb-2">Economy</h2>
             <p className="text-gray-600 dark:text-gray-400">
-              Manage income, expenses, and shopping for your house
+              Manage income, expenses, and supermarket budget
             </p>
           </Link>
 
@@ -44,6 +44,16 @@ export default function Home() {
             <h2 className="text-2xl font-semibold mb-2">Airbnb</h2>
             <p className="text-gray-600 dark:text-gray-400">
               Track expenses and products for your Airbnb
+            </p>
+          </Link>
+
+          <Link 
+            href="/boda" 
+            className="p-6 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <h2 className="text-2xl font-semibold mb-2">Boda</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Gestiona gastos, presupuestos, cotizaciones y notas de tu boda
             </p>
           </Link>
         </div>

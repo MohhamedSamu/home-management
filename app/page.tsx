@@ -46,6 +46,16 @@ export default function Home() {
               Track expenses and products for your Airbnb
             </p>
           </Link>
+
+          <Link 
+            href="/wedding" 
+            className="p-6 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          >
+            <h2 className="text-2xl font-semibold mb-2">Wedding</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Manage expenses, budgets, quotes, and notes for your wedding
+            </p>
+          </Link>
         </div>
       </div>
     </main>

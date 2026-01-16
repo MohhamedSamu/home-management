@@ -376,6 +376,212 @@ export interface Database {
           supplier?: string
         }
       }
+      wedding_categories: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          created_at?: string
+        }
+      }
+      wedding_expenses: {
+        Row: {
+          id: string
+          user_id: string
+          amount: number
+          description: string
+          category_id: string | null
+          date: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          amount: number
+          description: string
+          category_id?: string | null
+          date: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          amount?: number
+          description?: string
+          category_id?: string | null
+          date?: string
+          created_at?: string
+        }
+      }
+      wedding_budgets: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          initial_balance: number
+          start_date: string | null
+          end_date: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          initial_balance?: number
+          start_date?: string | null
+          end_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          initial_balance?: number
+          start_date?: string | null
+          end_date?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      wedding_budget_items: {
+        Row: {
+          id: string
+          budget_id: string
+          description: string
+          amount: number
+          type: 'income' | 'expense'
+          category_id: string | null
+          is_real: boolean
+          date: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          budget_id: string
+          description: string
+          amount: number
+          type: 'income' | 'expense'
+          category_id?: string | null
+          is_real?: boolean
+          date?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          budget_id?: string
+          description?: string
+          amount?: number
+          type?: 'income' | 'expense'
+          category_id?: string | null
+          is_real?: boolean
+          date?: string | null
+          created_at?: string
+        }
+      }
+      wedding_quotes: {
+        Row: {
+          id: string
+          user_id: string
+          person_name: string
+          contact_info: string | null
+          category_id: string | null
+          concept: string
+          price: number
+          details: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          person_name: string
+          contact_info?: string | null
+          category_id?: string | null
+          concept: string
+          price: number
+          details?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          person_name?: string
+          contact_info?: string | null
+          category_id?: string | null
+          concept?: string
+          price?: number
+          details?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      wedding_folders: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          name: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          name?: string
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      wedding_notes: {
+        Row: {
+          id: string
+          user_id: string
+          folder_id: string
+          title: string
+          content: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          folder_id: string
+          title: string
+          content?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          folder_id?: string
+          title?: string
+          content?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
   }
 }

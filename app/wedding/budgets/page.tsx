@@ -123,7 +123,7 @@ export default function WeddingBudgetsPage() {
       const itemsWithCategories = (data || []).map((item: any) => ({
         ...item,
         category_name: item.wedding_categories?.name || 'Sin categoría',
-      })))
+      }))
       
       setBudgetItems(itemsWithCategories)
     } catch (error) {

@@ -40,11 +40,18 @@ interface AirbnbExpense {
   is_recurring: boolean
 }
 
+interface WeddingExpense {
+  id: string
+  amount: number
+  date: string
+}
+
 export default function DashboardPage() {
   const [houseIncomes, setHouseIncomes] = useState<HouseIncome[]>([])
   const [airbnbIncomes, setAirbnbIncomes] = useState<AirbnbIncome[]>([])
   const [houseExpenses, setHouseExpenses] = useState<HouseExpense[]>([])
   const [airbnbExpenses, setAirbnbExpenses] = useState<AirbnbExpense[]>([])
+  const [weddingExpenses, setWeddingExpenses] = useState<WeddingExpense[]>([])
   const [loading, setLoading] = useState(true)
 
   const userId = getUserId()
@@ -55,7 +62,7 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      const [houseIncomesResult, airbnbIncomesResult, houseExpensesResult, airbnbExpensesResult] = 
+      const [houseIncomesResult, airbnbIncomesResult, houseExpensesResult, airbnbExpensesResult, weddingExpensesResult] = 
         await Promise.all([
           supabase
             .from('income')
@@ -73,17 +80,23 @@ export default function DashboardPage() {
             .from('airbnb_expenses')
             .select('*')
             .eq('user_id', userId),
+          supabase
+            .from('wedding_expenses')
+            .select('*')
+            .eq('user_id', userId),
         ])
 
       if (houseIncomesResult.error) throw houseIncomesResult.error
       if (airbnbIncomesResult.error) throw airbnbIncomesResult.error
       if (houseExpensesResult.error) throw houseExpensesResult.error
       if (airbnbExpensesResult.error) throw airbnbExpensesResult.error
+      if (weddingExpensesResult.error) throw weddingExpensesResult.error
 
       setHouseIncomes(houseIncomesResult.data || [])
       setAirbnbIncomes(airbnbIncomesResult.data || [])
       setHouseExpenses(houseExpensesResult.data || [])
       setAirbnbExpenses(airbnbExpensesResult.data || [])
+      setWeddingExpenses(weddingExpensesResult.data || [])
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
@@ -104,7 +117,9 @@ export default function DashboardPage() {
   const totalAirbnbExpenses = airbnbExpenses.reduce((sum, exp) => sum + exp.amount, 0)
   const totalAirbnbBalance = totalAirbnbIncome - totalAirbnbExpenses
 
-  const totalBalance = totalHouseBalance + totalAirbnbBalance
+  const totalWeddingExpenses = weddingExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0)
+
+  const totalBalance = totalHouseBalance + totalAirbnbBalance - totalWeddingExpenses
 
   // Calculate this month totals for reference
   const thisMonthHouseIncome = houseIncomes
@@ -135,8 +150,15 @@ export default function DashboardPage() {
     })
     .reduce((sum, exp) => sum + exp.amount, 0)
 
+  const thisMonthWeddingExpenses = weddingExpenses
+    .filter((exp) => {
+      const expenseDate = parseLocalDate(exp.date)
+      return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear
+    })
+    .reduce((sum, exp) => sum + Number(exp.amount), 0)
+
   const totalThisMonthIncome = thisMonthHouseIncome + thisMonthAirbnbIncome
-  const totalThisMonthExpenses = thisMonthHouseExpenses + thisMonthAirbnbExpenses
+  const totalThisMonthExpenses = thisMonthHouseExpenses + thisMonthAirbnbExpenses + thisMonthWeddingExpenses
   const totalThisMonthCashFlow = totalThisMonthIncome - totalThisMonthExpenses
 
   if (loading) {
@@ -169,7 +191,7 @@ export default function DashboardPage() {
               ${totalBalance.toFixed(2)}
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              All income - All expenses (House + Airbnb)
+              All income - All expenses (House + Airbnb + Wedding)
             </p>
           </div>
 
@@ -221,7 +243,8 @@ export default function DashboardPage() {
             </p>
             <p className="text-xs text-gray-500 mt-1">
               House: ${thisMonthHouseExpenses.toFixed(2)} | 
-              Airbnb: ${thisMonthAirbnbExpenses.toFixed(2)}
+              Airbnb: ${thisMonthAirbnbExpenses.toFixed(2)} |
+              Wedding: ${thisMonthWeddingExpenses.toFixed(2)}
             </p>
           </div>
         </div>
@@ -257,6 +280,10 @@ export default function DashboardPage() {
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-400">Airbnb</span>
                 <span className="font-semibold">${thisMonthAirbnbExpenses.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Wedding</span>
+                <span className="font-semibold">${thisMonthWeddingExpenses.toFixed(2)}</span>
               </div>
               <div className="flex justify-between pt-2 border-t">
                 <span className="font-semibold">Total</span>
